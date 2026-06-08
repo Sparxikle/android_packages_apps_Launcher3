@@ -37,6 +37,7 @@ import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.display.DisplayManager;
+import android.os.Build;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.DisplayMetrics;
@@ -501,7 +502,8 @@ public class DisplayController {
             navigationMode = wmProxy.getNavigationMode(displayInfoContext);
             mIsNightModeActive = config.isNightModeActive();
             mIsRotationAllowed =
-                    displayInfoContext.getResources().getBoolean(R.bool.config_allowRotation);
+                    displayInfoContext.getResources().getBoolean(R.bool.config_allowRotation)
+                    || "winglm".equals(Build.DEVICE);
 
             mPerDisplayBounds.putAll(perDisplayBoundsCache);
             List<WindowBounds> cachedValue = getCurrentBounds();

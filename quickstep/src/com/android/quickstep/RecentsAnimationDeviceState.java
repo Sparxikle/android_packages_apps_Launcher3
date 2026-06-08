@@ -54,6 +54,7 @@ import android.content.Context;
 import android.graphics.Region;
 import android.net.Uri;
 import android.os.RemoteException;
+import android.os.Build;
 import android.os.SystemProperties;
 import android.provider.Settings;
 import android.view.MotionEvent;
@@ -146,6 +147,8 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
     private boolean mExclusionListenerRegistered;
     private final int mDisplayId;
 
+    private static final boolean IS_WINGLM = "winglm".equals(android.os.Build.DEVICE);
+
     @AssistedInject
     RecentsAnimationDeviceState(
             @ApplicationContext Context context,
@@ -168,12 +171,12 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
         lifeCycle.addCloseable(this::unregisterExclusionListener);
 
         // Register for display changes changes
-        mDisplayController.addChangeListener(this);
+        mDisplayController.addChangeListenerForDisplay(this, mDisplayId);
         Info displayInfo = mDisplayController.getInfoForDisplay(mDisplayId);
         if (displayInfo != null) {
             onDisplayInfoChanged(context, displayInfo, CHANGE_ALL);
         }
-        lifeCycle.addCloseable(() -> mDisplayController.removeChangeListener(this));
+        lifeCycle.addCloseable(() -> mDisplayController.removeChangeListenerForDisplay(this, mDisplayId));
 
         if (mIsOneHandedModeSupported) {
             Uri oneHandedUri = Settings.Secure.getUriFor(ONE_HANDED_ENABLED);
@@ -413,6 +416,11 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
         boolean canStartWithNavHidden = (getSysuiStateFlags() & SYSUI_STATE_NAV_BAR_HIDDEN) == 0
                 || (getSysuiStateFlags() & SYSUI_STATE_ALLOW_GESTURE_IGNORING_BAR_VISIBILITY) != 0
                 || mRotationTouchHelper.isTaskListFrozen();
+
+        if (mDisplayId == 0 && IS_WINGLM) {
+            canStartWithNavHidden = true;
+        }
+
         return canStartWithNavHidden && canStartAnyGesture();
     }
 

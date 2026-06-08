@@ -18,6 +18,8 @@ package com.android.quickstep;
 
 import static com.android.quickstep.window.RecentsWindowFlags.enableOverviewOnConnectedDisplays;
 
+import android.os.Build;
+
 import androidx.annotation.Nullable;
 
 import com.android.quickstep.util.DesksUtils;
@@ -130,7 +132,9 @@ public class RecentsFilterState {
             filter = filter.and(groupTask -> groupTask.containsPackage(packageName));
         }
         if (enableOverviewOnConnectedDisplays()) {
-            filter = filter.and(groupTask -> groupTask.matchesDisplayId(displayId));
+            if (!"winglm".equals(Build.DEVICE)) {
+                filter = filter.and(groupTask -> groupTask.matchesDisplayId(displayId));
+            }
         }
         return filter;
     }

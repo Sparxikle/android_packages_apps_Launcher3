@@ -172,6 +172,8 @@ public class TouchInteractionService extends Service {
             new DesktopExperienceFlag(Flags::enableGestureNavOnConnectedDisplays, true,
                 Flags.FLAG_ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS);
 
+    private static final boolean IS_WINGLM = "winglm".equals(android.os.Build.DEVICE);
+
     private final TISBinder mTISBinder = new TISBinder(this);
 
     /**
@@ -860,13 +862,15 @@ public class TouchInteractionService extends Service {
         if (ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS.isTrue()) {
             mInputMonitorDisplayModel = new InputMonitorDisplayModel(
                     this, mSystemDecorationChangeObserver);
+            mDeviceStateRepository.forEach(true, ds ->
+                    mRotationTouchHelperRepository.get(ds.getDisplayId())
+                            .updateGestureTouchRegions());
         } else {
             mInputMonitorCompat = new InputMonitorCompat("swipe-up", DEFAULT_DISPLAY);
             mInputEventReceiver = mInputMonitorCompat.getInputReceiver(Looper.getMainLooper(),
                     mMainChoreographer, this::onInputEvent);
+            mRotationTouchHelperRepository.get(DEFAULT_DISPLAY).updateGestureTouchRegions();
         }
-
-        mRotationTouchHelperRepository.get(DEFAULT_DISPLAY).updateGestureTouchRegions();
     }
 
     private boolean isInputMonitorInitialized() {
@@ -1535,6 +1539,9 @@ public class TouchInteractionService extends Service {
     }
 
     private int focusedDisplayIdForOverviewOnConnectedDisplays() {
+        if (IS_WINGLM) {
+            return DEFAULT_DISPLAY;
+        }
         return enableOverviewOnConnectedDisplays()
                 ? SystemUiProxy.INSTANCE.get(this).getFocusState().getFocusedDisplayId()
                 : DEFAULT_DISPLAY;

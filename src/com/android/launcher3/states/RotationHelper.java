@@ -27,6 +27,7 @@ import static com.android.launcher3.util.Executors.UI_HELPER_EXECUTOR;
 import static com.android.launcher3.util.window.WindowManagerProxy.MIN_TABLET_WIDTH;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -226,7 +227,8 @@ public class RotationHelper implements LauncherPrefChangeListener,
         } else if (mCurrentStateRequest == REQUEST_LOCK) {
             activityFlags = SCREEN_ORIENTATION_LOCKED;
         } else if (mIgnoreAutoRotateSettings || mCurrentStateRequest == REQUEST_ROTATE
-                || mHomeRotationEnabled || mForceAllowRotationForTesting) {
+                || mHomeRotationEnabled || mForceAllowRotationForTesting
+                || "winglm".equals(Build.DEVICE)) {
             activityFlags = SCREEN_ORIENTATION_UNSPECIFIED;
         } else {
             // If auto rotation is off, allow rotation on the activity, in case the user is using
