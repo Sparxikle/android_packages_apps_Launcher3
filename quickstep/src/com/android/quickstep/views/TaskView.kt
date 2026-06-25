@@ -1597,11 +1597,17 @@ constructor(
         )
         val opts =
             container.getActivityLaunchOptions(this, null).apply {
-                options.launchDisplayId = displayId
+                options.launchDisplayId = if ("winglm".equals(android.os.Build.DEVICE)) rootViewDisplayId else displayId
                 // On external displays the default windowing mode is not fullscreen. To make
                 // sure fullscreen apps remain fullscreen we set the windowing mode explicitly.
                 options.launchWindowingMode = WINDOWING_MODE_FULLSCREEN
             }
+        val c = container
+        if (c is com.android.quickstep.window.RecentsWindowManager) {
+            opts.onEndCallback.add {
+                c.hideRecentsWindow()
+            }
+        }
         if (
             ActivityManagerWrapper.getInstance()
                 .startActivityFromRecents(firstTaskContainer.task.key, opts.options)
@@ -1685,6 +1691,10 @@ constructor(
                 ) {
                     Log.d(TAG, "launchWithoutAnimation: launch animation finished")
                     failureListener.onTransitionFinished()
+                    val c = container
+                    if (c is com.android.quickstep.window.RecentsWindowManager) {
+                        c.hideRecentsWindow()
+                    }
                 }
                 .apply {
                     launchDisplayId = display?.displayId ?: Display.DEFAULT_DISPLAY

@@ -148,10 +148,20 @@ public class OtherActivityInputConsumer extends ContextWrapper implements InputC
         mGestureState = gestureState;
         mHandlerFactory = handlerFactory;
 
-        mMotionPauseDetector = new MotionPauseDetector(base, false,
+        Context contextForDisplay = base;
+        if (gestureState != null) {
+            android.hardware.display.DisplayManager dm = base.getSystemService(android.hardware.display.DisplayManager.class);
+            if (dm != null) {
+                android.view.Display display = dm.getDisplay(gestureState.getDisplayId());
+                if (display != null) {
+                    contextForDisplay = base.createDisplayContext(display);
+                }
+            }
+        }
+        mMotionPauseDetector = new MotionPauseDetector(contextForDisplay, false,
                 mNavBarPosition.isLeftEdge() || mNavBarPosition.isRightEdge()
                         ? MotionEvent.AXIS_X : MotionEvent.AXIS_Y);
-        mMotionPauseMinDisplacement = base.getResources().getDimension(
+        mMotionPauseMinDisplacement = contextForDisplay.getResources().getDimension(
                 R.dimen.motion_pause_detector_min_displacement_from_app);
         mOnCompleteCallback = onCompleteCallback;
         mVelocityTracker = VelocityTracker.obtain();

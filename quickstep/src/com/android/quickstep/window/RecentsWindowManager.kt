@@ -449,6 +449,9 @@ constructor(
     }
 
     override fun startHome(animated: Boolean, onHomeAnimationComplete: Runnable?) {
+        if ("winglm".equals(android.os.Build.DEVICE)) {
+            hideRecentsWindow()
+        }
         startHomeWithRemoteAnimation(onHomeAnimationComplete = onHomeAnimationComplete)
     }
 

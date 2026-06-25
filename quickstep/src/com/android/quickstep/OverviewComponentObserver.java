@@ -349,12 +349,17 @@ public final class OverviewComponentObserver {
      */
     @Nullable
     public BaseContainerInterface<?, ?> getContainerInterface(int displayId) {
+        android.util.Log.e("WING_DEBUG", "getContainerInterface: displayId=" + displayId + ", enableOverviewOnConnectedDisplays()=" + enableOverviewOnConnectedDisplays());
         if (enableOverviewOnConnectedDisplays() && displayId != DEFAULT_DISPLAY) {
             RecentsWindowManager recentsWindowManager = mRecentsWindowManagerRepository.get(
                     displayId);
-            return recentsWindowManager != null ? recentsWindowManager.getContainerInterface()
+            android.util.Log.e("WING_DEBUG", "getContainerInterface: recentsWindowManager=" + recentsWindowManager);
+            BaseContainerInterface<?, ?> res = recentsWindowManager != null ? recentsWindowManager.getContainerInterface()
                     : null;
+            android.util.Log.e("WING_DEBUG", "getContainerInterface: returning from recentsWindowManager: " + res);
+            return res;
         } else {
+            android.util.Log.e("WING_DEBUG", "getContainerInterface: returning mDefaultDisplayContainerInterface: " + mDefaultDisplayContainerInterface);
             return mDefaultDisplayContainerInterface;
         }
     }

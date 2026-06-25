@@ -417,7 +417,7 @@ public class RecentsAnimationDeviceState implements DisplayInfoChangeListener, E
                 || (getSysuiStateFlags() & SYSUI_STATE_ALLOW_GESTURE_IGNORING_BAR_VISIBILITY) != 0
                 || mRotationTouchHelper.isTaskListFrozen();
 
-        if (mDisplayId == 0 && IS_WINGLM) {
+        if (IS_WINGLM) {
             canStartWithNavHidden = true;
         }
 

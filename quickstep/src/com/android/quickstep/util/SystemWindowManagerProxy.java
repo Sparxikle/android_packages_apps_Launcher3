@@ -165,6 +165,6 @@ public class SystemWindowManagerProxy extends WindowManagerProxy {
 
     @Override
     public boolean enableOverviewOnConnectedDisplays() {
-        return RecentsWindowFlags.enableOverviewOnConnectedDisplays();
+        return "winglm".equals(android.os.Build.DEVICE) || RecentsWindowFlags.enableOverviewOnConnectedDisplays();
     }
 }

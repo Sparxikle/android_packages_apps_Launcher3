@@ -132,6 +132,7 @@ constructor(
             return null
         }
 
+        android.util.Log.e("WING_DEBUG", "OverviewCommandHelper.addCommand: type=" + type + ", displayId=" + displayId)
         val command =
             CommandInfo(
                 type,
@@ -221,10 +222,13 @@ constructor(
     @VisibleForTesting
     fun executeCommand(command: CommandInfo, onCallbackResult: () -> Unit): Boolean {
         val recentsView = getVisibleRecentsView(command.displayId)
+        android.util.Log.e("WING_DEBUG", "executeCommand: displayId=" + command.displayId + ", recentsView=" + recentsView)
         OverviewCommandHelperProtoLogProxy.logExecutingCommand(command, recentsView)
         return if (recentsView != null) {
+            android.util.Log.e("WING_DEBUG", "executeCommand: recents is visible, running executeWhenRecentsIsVisible")
             executeWhenRecentsIsVisible(command, recentsView, onCallbackResult)
         } else {
+            android.util.Log.e("WING_DEBUG", "executeCommand: recents is NOT visible, running executeWhenRecentsIsNotVisible")
             executeWhenRecentsIsNotVisible(command, onCallbackResult)
         }
     }
@@ -399,13 +403,18 @@ constructor(
         }
     }
 
-    // Returns false if callbacks should be awaited, true otherwise.
     private fun executeWhenRecentsIsNotVisible(
         command: CommandInfo,
         onCallbackResult: () -> Unit,
     ): Boolean {
-        val containerInterface = getContainerInterface(command.displayId) ?: return true
+        val containerInterface = getContainerInterface(command.displayId)
+        android.util.Log.e("WING_DEBUG", "executeWhenRecentsIsNotVisible: displayId=" + command.displayId + ", containerInterface=" + containerInterface)
+        if (containerInterface == null) {
+            android.util.Log.e("WING_DEBUG", "executeWhenRecentsIsNotVisible: containerInterface is null, returning true")
+            return true
+        }
         val recentsViewContainer = containerInterface.getCreatedContainer()
+        android.util.Log.e("WING_DEBUG", "executeWhenRecentsIsNotVisible: recentsViewContainer=" + recentsViewContainer)
         val recentsView: RecentsView<*, *>? = recentsViewContainer?.getOverviewPanel()
         val deviceProfile = recentsViewContainer?.getDeviceProfile()
         val taskbarInteractor: TaskbarInteractor? =

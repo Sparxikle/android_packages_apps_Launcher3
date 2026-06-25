@@ -1791,7 +1791,7 @@ public abstract class RecentsView<
             case MotionEvent.ACTION_UP:
                 if (mTouchDownToStartHome) {
                     TaskView taskView = getCurrentPageTaskView();
-                    if (isExternalDisplay(mContainer.getDisplayId()) && taskView != null
+                    if (isExternalDisplay(mContainer.getDisplayId()) && !"winglm".equals(android.os.Build.DEVICE) && taskView != null
                             && !taskView.isBeingDismissed() && isTaskViewVisible(taskView)) {
                         taskView.launchWithAnimation();
                     } else {

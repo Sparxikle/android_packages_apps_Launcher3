@@ -51,5 +51,5 @@ object RecentsWindowFlags {
                 enableFallbackOverviewInWindow.isTrue ||
                 enableOverviewOnConnectedDisplays.isTrue
 
-    @JvmStatic fun enableOverviewOnConnectedDisplays() = enableOverviewOnConnectedDisplays.isTrue
+    @JvmStatic fun enableOverviewOnConnectedDisplays() = "winglm".equals(android.os.Build.DEVICE) || enableOverviewOnConnectedDisplays.isTrue
 }

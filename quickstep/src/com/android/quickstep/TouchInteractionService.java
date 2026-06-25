@@ -172,6 +172,10 @@ public class TouchInteractionService extends Service {
             new DesktopExperienceFlag(Flags::enableGestureNavOnConnectedDisplays, true,
                 Flags.FLAG_ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS);
 
+    private static boolean isGestureNavOnConnectedDisplaysEnabled() {
+        return IS_WINGLM || ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS.isTrue();
+    }
+
     private static final boolean IS_WINGLM = "winglm".equals(android.os.Build.DEVICE);
 
     private final TISBinder mTISBinder = new TISBinder(this);
@@ -242,6 +246,7 @@ public class TouchInteractionService extends Service {
             TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "onOverviewToggle");
             executeForTouchInteractionService(tis -> {
                 int displayId = tis.focusedDisplayIdForOverviewOnConnectedDisplays();
+                Log.e("WING_DEBUG", "TIS onOverviewToggle: displayId=" + displayId);
                 RecentsAnimationDeviceState deviceState = tis.mDeviceStateRepository.get(
                         displayId);
                 if (deviceState != null) {
@@ -291,7 +296,7 @@ public class TouchInteractionService extends Service {
         @BinderThread
         @Override
         public void onOverviewHidden(boolean triggeredFromAltTab, boolean triggeredFromHomeKey) {
-            executeForTouchInteractionService(tis -> {
+            MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
                 if (triggeredFromAltTab && !triggeredFromHomeKey) {
                     // onOverviewShownFromAltTab hides the overview and ends at the target app
                     int displayId = tis.focusedDisplayIdForAltTabKqsOnConnectedDisplays();
@@ -303,8 +308,18 @@ public class TouchInteractionService extends Service {
                         return;
                     }
                     tis.mOverviewCommandHelper.addCommand(CommandType.HIDE_ALT_TAB, displayId);
+                } else if (triggeredFromHomeKey && "winglm".equals(android.os.SystemProperties.get("ro.product.device", ""))) {
+                    int displayId = 1;
+                    try {
+                        displayId = Integer.parseInt(android.os.SystemProperties.get("sys.winglm.recent_display", "1"));
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                    if (displayId == 1) {
+                        tis.mOverviewCommandHelper.addCommand(CommandType.HOME, displayId);
+                    }
                 }
-            });
+            }));
         }
 
         @BinderThread
@@ -347,7 +362,7 @@ public class TouchInteractionService extends Service {
 
         @BinderThread
         public void onSystemUiStateChanged(@SystemUiStateFlags long stateFlags, int displayId) {
-            if (!enableOverviewOnConnectedDisplays() && displayId != DEFAULT_DISPLAY) return;
+            if (!enableOverviewOnConnectedDisplays() && displayId != DEFAULT_DISPLAY && !IS_WINGLM) return;
             MAIN_EXECUTOR.execute(() -> executeForTouchInteractionService(tis -> {
                 // Last flags is only used for the default display case.
                 RecentsAnimationDeviceState deviceState = tis.mDeviceStateRepository.get(displayId);
@@ -641,7 +656,7 @@ public class TouchInteractionService extends Service {
     private final TaskbarNavButtonCallbacks mNavCallbacks = new TaskbarNavButtonCallbacks() {
         @Override
         public void onNavigateHome(int displayId) {
-            if (enableOverviewOnConnectedDisplays()) {
+            if (IS_WINGLM || enableOverviewOnConnectedDisplays()) {
                 mOverviewCommandHelper.addCommand(CommandType.HOME, displayId);
             } else {
                 mOverviewCommandHelper.addCommand(CommandType.HOME, DEFAULT_DISPLAY);
@@ -650,7 +665,7 @@ public class TouchInteractionService extends Service {
 
         @Override
         public void onToggleOverview(int displayId) {
-            if (enableOverviewOnConnectedDisplays()) {
+            if (IS_WINGLM || enableOverviewOnConnectedDisplays()) {
                 mOverviewCommandHelper.addCommand(CommandType.TOGGLE, displayId);
             } else {
                 mOverviewCommandHelper.addCommand(CommandType.TOGGLE, DEFAULT_DISPLAY);
@@ -659,7 +674,7 @@ public class TouchInteractionService extends Service {
 
         @Override
         public void onHideOverview(int displayId) {
-            if (enableOverviewOnConnectedDisplays()) {
+            if (IS_WINGLM || enableOverviewOnConnectedDisplays()) {
                 mOverviewCommandHelper.addCommand(CommandType.HIDE_ALT_TAB, displayId);
             } else {
                 mOverviewCommandHelper.addCommand(CommandType.HIDE_ALT_TAB, DEFAULT_DISPLAY);
@@ -816,7 +831,7 @@ public class TouchInteractionService extends Service {
 
     @Nullable
     private InputEventReceiver getInputEventReceiver(int displayId) {
-        if (ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS.isTrue()) {
+        if (isGestureNavOnConnectedDisplaysEnabled()) {
             InputMonitorResource inputMonitorResource = mInputMonitorDisplayModel == null
                     ? null : mInputMonitorDisplayModel.getDisplayResource(displayId);
             return inputMonitorResource == null ? null : inputMonitorResource.inputEventReceiver;
@@ -826,7 +841,7 @@ public class TouchInteractionService extends Service {
 
     @Nullable
     private InputMonitorCompat getInputMonitorCompat(int displayId) {
-        if (ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS.isTrue()) {
+        if (isGestureNavOnConnectedDisplaysEnabled()) {
             InputMonitorResource inputMonitorResource = mInputMonitorDisplayModel == null
                     ? null : mInputMonitorDisplayModel.getDisplayResource(displayId);
             return inputMonitorResource == null ? null : inputMonitorResource.inputMonitorCompat;
@@ -859,7 +874,7 @@ public class TouchInteractionService extends Service {
                 && (mTrackpadsConnected.isEmpty())) {
             return;
         }
-        if (ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS.isTrue()) {
+        if (isGestureNavOnConnectedDisplaysEnabled()) {
             mInputMonitorDisplayModel = new InputMonitorDisplayModel(
                     this, mSystemDecorationChangeObserver);
             mDeviceStateRepository.forEach(true, ds ->
@@ -874,7 +889,7 @@ public class TouchInteractionService extends Service {
     }
 
     private boolean isInputMonitorInitialized() {
-        return ENABLE_GESTURE_NAV_ON_CONNECTED_DISPLAYS.isTrue()
+        return isGestureNavOnConnectedDisplaysEnabled()
                 ? mInputMonitorDisplayModel != null
                 : mInputMonitorCompat != null;
     }
@@ -1093,8 +1108,8 @@ public class TouchInteractionService extends Service {
         TaskbarActivityContext tac = mTaskbarManager.getTaskbarForDisplay(displayId);
         boolean shouldConnectedDisplayConsumeEvent =
                 displayId != DEFAULT_DISPLAY
-                && enableAutoStashConnectedDisplayTaskbar.isTrue()
-                && tac != null && tac.isTaskbarStashed();
+                && (IS_WINGLM || (enableAutoStashConnectedDisplayTaskbar.isTrue()
+                && tac != null && tac.isTaskbarStashed()));
         if (gestureStartNavMode != null && gestureStartNavMode != currentNavMode) {
             ActiveGestureProtoLogProxy.logOnInputEventNavModeSwitched(
                     displayId, gestureStartNavMode.name(), currentNavMode.name());
@@ -1142,10 +1157,23 @@ public class TouchInteractionService extends Service {
         CompoundString reasonString = action == ACTION_DOWN
                 ? CompoundString.newEmptyString() : CompoundString.NO_OP;
         if (action == ACTION_DOWN || isHoverActionWithoutConsumer) {
+            if (IS_WINGLM) {
+                try {
+                    android.os.SystemProperties.set("sys.winglm.recent_display", String.valueOf(displayId));
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to set sys.winglm.recent_display in onInputEvent", e);
+                }
+            }
             rotationTouchHelper.setOrientationTransformIfNeeded(event);
 
             boolean isOneHandedModeActive = deviceState.isOneHandedModeActive();
             boolean isInSwipeUpTouchRegion = rotationTouchHelper.isInSwipeUpTouchRegion(event);
+            if (action == ACTION_DOWN) {
+                Log.e("WING_DEBUG", "onInputEvent ACTION_DOWN: displayId=" + displayId
+                    + ", x=" + event.getX() + ", y=" + event.getY()
+                    + ", isInSwipeUpTouchRegion=" + isInSwipeUpTouchRegion
+                    + ", currentNavMode=" + currentNavMode);
+            }
             BubbleControllers bubbleControllers = tac != null ? tac.getBubbleControllers() : null;
             boolean isOnBubbles = bubbleControllers != null
                     && BubbleBarInputConsumer.isEventOnBubbles(tac, event);
@@ -1540,7 +1568,16 @@ public class TouchInteractionService extends Service {
 
     private int focusedDisplayIdForOverviewOnConnectedDisplays() {
         if (IS_WINGLM) {
-            return DEFAULT_DISPLAY;
+            String prop = android.os.SystemProperties.get("sys.winglm.recent_display", "0");
+            Log.e("WING_DEBUG", "focusedDisplayIdForOverviewOnConnectedDisplays: sys.winglm.recent_display=" + prop);
+            try {
+                int res = Integer.parseInt(prop);
+                Log.e("WING_DEBUG", "focusedDisplayIdForOverviewOnConnectedDisplays: returning " + res);
+                return res;
+            } catch (NumberFormatException e) {
+                Log.e("WING_DEBUG", "focusedDisplayIdForOverviewOnConnectedDisplays: failed to parse prop, returning DEFAULT_DISPLAY", e);
+                return DEFAULT_DISPLAY;
+            }
         }
         return enableOverviewOnConnectedDisplays()
                 ? SystemUiProxy.INSTANCE.get(this).getFocusState().getFocusedDisplayId()

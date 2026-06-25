@@ -505,7 +505,7 @@ public class WindowManagerProxy {
     public NavigationMode getNavigationMode(Context displayInfoContext) {
         // Always assume 3-button nav for external displays
         int displayId = getDisplayId(displayInfoContext);
-        if (displayId != DEFAULT_DISPLAY) {
+        if (displayId != DEFAULT_DISPLAY && !"winglm".equals(android.os.Build.DEVICE)) {
             return NavigationMode.THREE_BUTTONS;
         }
         // Otherwise get from Resource
@@ -526,7 +526,7 @@ public class WindowManagerProxy {
 
     /** Returns whether overview on connected displays is enabled */
     public boolean enableOverviewOnConnectedDisplays() {
-        return Flags.enableOverviewOnConnectedDisplays();
+        return "winglm".equals(android.os.Build.DEVICE) || Flags.enableOverviewOnConnectedDisplays();
     }
 
     /**

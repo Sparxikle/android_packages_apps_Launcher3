@@ -98,6 +98,9 @@ abstract class DisplayModel<RESOURCE_TYPE : DisplayResource>(
 
     fun deleteDisplayResource(displayId: Int) {
         if (DEBUG) Log.d(TAG, "delete: displayId=$displayId")
+        if ("winglm".equals(android.os.Build.DEVICE) && displayId == 1) {
+            return
+        }
         getDisplayResource(displayId)?.let {
             it.cleanup()
             displayResourceArray.remove(displayId)

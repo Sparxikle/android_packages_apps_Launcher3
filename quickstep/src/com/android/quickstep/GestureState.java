@@ -246,6 +246,9 @@ public class GestureState implements RecentsAnimationCallbacks.RecentsAnimationL
     }
 
     public static boolean displaySupportsHomeGesture(int displayId) {
+        if ("winglm".equals(android.os.Build.DEVICE)) {
+            return true;
+        }
         if (DesktopExperienceFlags.ENABLE_REJECT_HOME_TRANSITION.isTrue()
                 && displayId != DEFAULT_DISPLAY) {
             return false;
